@@ -1,8 +1,0 @@
-- name: 첫 연결 테스트
-  hosts: server
-  tasks:
-    - name: Ping 테스트
-      ping:
-
-    - name: 서버 uptime 확인
-      command: uptime
