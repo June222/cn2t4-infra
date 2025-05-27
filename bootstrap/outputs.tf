@@ -10,3 +10,7 @@ output "jenkins_ip" {
   description = "Public IP of Jenkins EC2"
   value       = aws_eip.ci_server_eip.public_ip
 }
+
+output "bucket_name" {
+  value = aws_s3_bucket.test_bucket.id
+}
