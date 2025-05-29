@@ -1,11 +1,44 @@
-- name: 첫 연결 테스트
+- name: EC2 Jenkins 서버 설정
   hosts: server
+  become: true # 관리자 권한으로 실행
+  vars:
+    jenkins_plugins:
+      - cloudbees-folder
+      - antisamy-markup-formatter
+      - build-timeout
+      - credentials-binding
+      - timestamper
+      - ws-cleanup
+      - ant
+      - gradle
+      - workflow-aggregator
+      - github-branch-source
+      - pipeline-github-lib
+      - pipeline-graph-view
+      - git
+      - ssh-slaves
+      - matrix-auth
+      - ldap
+      - email-ext
+      - mailer
+      - dark-theme
+      - aws-credentials
   tasks:
     - name: Ping 테스트
       ping:
 
     - name: 서버 uptime 확인
       command: uptime
+
+    - name: 스왑 메모리 2GB 추가
+      shell: |
+        fallocate -l 2G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+      args:
+        creates: /swapfile
 
     - name: Docker 설치
       apt:
@@ -16,7 +49,6 @@
           - gnupg
           - lsb-release
         state: present
-        update_cache: yes
 
     - name: Docker GPG 키 추가 및 repo 등록
       shell: |
@@ -24,6 +56,10 @@
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu focal stable" > /etc/apt/sources.list.d/docker.list
       args:
         creates: /etc/apt/sources.list.d/docker.list
+    
+    - name: Docker 저장소 추가 후 apt 캐시 업데이트
+      apt:
+        update_cache: yes
 
     - name: Docker Engine 설치
       apt:
@@ -32,7 +68,12 @@
           - docker-ce-cli
           - containerd.io
         state: latest
-        update_cache: yes
+
+    - name: Docker 서비스 시작 및 활성화
+      service:
+        name: docker
+        state: started
+        enabled: true
 
     - name: Docker 그룹에 ubuntu 사용자 추가
       user:
@@ -51,46 +92,142 @@
 
     - name: Java 설치 (Jenkins 의존성)
       apt:
-        name: openjdk-11-jdk
+        name: openjdk-17-jdk
         state: present
 
-    - name: Jenkins GPG 키 및 repo 등록
-      apt_key:
-        url: https://pkg.jenkins.io/debian/jenkins.io.key
-        state: present
+    - name: Jenkins GPG 키 파일 저장
+      get_url:
+        url: https://pkg.jenkins.io/debian/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: '0644'
 
-    - name: Jenkins repo 추가
+    - name: Jenkins 저장소 추가
       apt_repository:
-        repo: deb https://pkg.jenkins.io/debian binary/
+        repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/"
         state: present
+        filename: jenkins
+
+    - name: Jenkins 저장소 추가 후 apt 캐시 업데이트
+      apt:
+        update_cache: yes
 
     - name: Jenkins 설치
       apt:
         name: jenkins
         state: present
-        update_cache: yes
+      tags: jenkins
     
     - name: Jenkins 사용자를 docker 그룹에 추가
       user:
         name: jenkins
         groups: docker
         append: yes
+    
+    - name: Jenkins init.groovy.d 디렉토리 생성
+      file:
+        path: /var/lib/jenkins/init.groovy.d
+        state: directory
+        owner: jenkins
+        group: jenkins
+        mode: '0755'
 
+    - name: Jenkins 관리자 계정 생성 스크립트 배포
+      copy:
+        dest: /var/lib/jenkins/init.groovy.d/basic-security.groovy
+        content: |
+          import jenkins.model.*
+          import hudson.security.*
+          import jenkins.install.InstallState
+
+          Jenkins.instance.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
+          def instance = Jenkins.get()
+          def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+          hudsonRealm.createAccount("{{ jenkins_admin_id }}", "{{ jenkins_admin_pw }}")
+          instance.setSecurityRealm(hudsonRealm)
+          
+          def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+          strategy.setAllowAnonymousRead(false)
+          instance.setAuthorizationStrategy(strategy)
+          
+          instance.save()
+
+    - name: Jenkins setup 완료 마크 파일 생성
+      copy:
+        dest: /var/lib/jenkins/jenkins.install.InstallUtil.lastExecVersion
+        content: "2.512"  # 현재 설치된 Jenkins 버전에 맞게 기입
+        owner: jenkins
+        group: jenkins
+        mode: '0644'
+    
+    - name: Jenkins setupState 완료 상태 파일 생성
+      copy:
+        dest: /var/lib/jenkins/jenkins.install.InstallUtil.setupState
+        content: "INITIAL_SETUP_COMPLETED"
+        owner: jenkins
+        group: jenkins
+        mode: '0644'
+    
+    - name: Jenkins UpgradeWizard 완료 상태 파일 생성
+      copy:
+        dest: /var/lib/jenkins/jenkins.install.UpgradeWizard.state
+        content: "2.512"
+        owner: jenkins
+        group: jenkins
+        mode: '0644'
 
     - name: Jenkins 서비스 시작 및 부팅 시 활성화
       service:
         name: jenkins
-        state: started
+        state: restarted
         enabled: true
-    
-    - name: Jenkins 초기 admin password 출력
-      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
-      register: jenkins_admin_pw
-      changed_when: false
 
-    - name: 초기 admin password 출력
-      debug:
-        msg: "Jenkins 초기 비밀번호: {{ jenkins_admin_pw.stdout }}"
+    - name: Jenkins 설정 완료 대기 (포트 8080 응답 대기)
+      wait_for:
+        host: localhost
+        port: 8080
+        delay: 10
+        timeout: 60
+
+    - name: Jenkins UI 준비 상태 확인 (/login 응답 체크)
+      uri:
+        url: http://localhost:8080/login
+        status_code: 200
+      register: login_check
+      until: login_check.status == 200
+      retries: 10
+      delay: 6
+
+    - name: Jenkins CLI 다운로드
+      get_url:
+        url: http://localhost:8080/jnlpJars/jenkins-cli.jar
+        dest: /tmp/jenkins-cli.jar
+      register: cli_download
+      until: cli_download is succeeded
+      retries: 5
+      delay: 10
+    
+    - name: Jenkins CLI 인증 테스트
+      shell: |
+        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }} who-am-i
+      register: jenkins_cli_auth
+      retries: 5
+      delay: 6
+      until: jenkins_cli_auth.rc == 0
+    
+    - name: 필요 플러그인 설치
+      shell: |
+        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }} install-plugin {{ jenkins_plugins | join(' ') }}
+      register: plugin_install
+      retries: 3
+      delay: 15
+      until: plugin_install.rc == 0
+      tags: plugins
+
+    - name: Jenkins 리스타트
+      shell: |
+        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }} safe-restart
+      async: 0
+      poll: 0
 
     - name: Terraform 설치
       shell: |
@@ -100,8 +237,7 @@
       args:
         creates: /usr/local/bin/terraform
 
-    - name: Ansible 재설치
+    - name: Ansible 설치
       apt:
         name: ansible
         state: present
-        update_cache: yes
