@@ -22,3 +22,8 @@ variable "ami_ubuntu" {
 variable "key_name" {
   description = "123"
 }
+
+variable "acm_certificate_arn" {
+  description = "ACM 인증서 ARN (us-east-1 리전에 생성된 것)"
+  type        = string
+}

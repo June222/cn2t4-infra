@@ -12,5 +12,25 @@ output "jenkins_ip" {
 }
 
 output "bucket_name" {
-  value = aws_s3_bucket.test_bucket.id
+  value = aws_s3_bucket.tikklemoa_bucket.id
+}
+
+output "certificate_arn" {
+  description = "The ARN of the ACM certificate"
+  value       = aws_acm_certificate.cloudfront_cert.arn
+}
+
+output "certificate_domain" {
+  description = "The domain for the certificate"
+  value       = aws_acm_certificate.cloudfront_cert.domain_name
+}
+
+output "certificate_arn" {
+  description = "The ARN of the ACM certificate"
+  value       = aws_acm_certificate.alb_cert.arn
+}
+
+output "certificate_domain" {
+  description = "The domain for the certificate"
+  value       = aws_acm_certificate.alb_cert.domain_name
 }
