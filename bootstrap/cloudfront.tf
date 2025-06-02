@@ -7,6 +7,7 @@ resource "aws_cloudfront_origin_access_control" "oac" {
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
+  provider = aws.virginia
   origin {
     domain_name = aws_s3_bucket.tikklemoa_bucket.bucket_regional_domain_name
     origin_id   = "s3-Origin"
@@ -23,16 +24,13 @@ resource "aws_cloudfront_distribution" "cdn" {
     target_origin_id = "s3-Origin"
 
     viewer_protocol_policy = "redirect-to-https"
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
+
+    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  
   }
 
 viewer_certificate {
-    acm_certificate_arn            = var.acm_certificate_arn  # 여기에서 사용자 지정 인증서 ARN 사용
+    acm_certificate_arn            = aws_acm_certificate.cloudfront_cert.arn # 여기에서 사용자 지정 인증서 ARN 사용
     ssl_support_method             = "sni-only"
     minimum_protocol_version       = "TLSv1.2_2021"
   }
@@ -45,5 +43,5 @@ viewer_certificate {
     }
   }
   
-  depends_on = [aws_s3_bucket.tikklemoa]
+  depends_on = [aws_s3_bucket.tikklemoa_bucket]
 }

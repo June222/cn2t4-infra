@@ -1,6 +1,6 @@
 provider "aws" {
   alias  = "virginia"
-  region = "us-east-1" # CloudFront용 인증서는 반드시 us-east-1에 있어야 함
+  region = "us-east-1"
 }
 
 resource "aws_acm_certificate" "cloudfront_cert" {

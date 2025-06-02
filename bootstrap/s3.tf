@@ -4,7 +4,7 @@ provider "aws" {
 
 # S3 버킷을 생성
 resource "aws_s3_bucket" "tikklemoa_bucket" {
-  bucket = "my-test-static-site-bucket-2025-unique"  # 추후 이름만 수정해서 적용 
+  bucket = "tikklemoa-bucket-test"  # 추후 이름만 수정해서 적용 
   force_destroy = true
 
   tags = {
