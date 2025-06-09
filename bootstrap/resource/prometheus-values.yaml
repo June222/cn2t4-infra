@@ -1,0 +1,27 @@
+server:
+  persistentVolume:
+      enabled: true
+      storageClass: gp2
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  retention: "12h"
+  scrapeInterval: "60s"
+  nodeSelector: {}  # 필요시 system 노드로 고정
+
+alertmanager:
+  enabled: false
+
+pushgateway:
+  enabled: false
+
+kubeStateMetrics:
+  enabled: false
+
+prometheus-node-exporter:
+  enabled: false
