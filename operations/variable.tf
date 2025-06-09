@@ -15,3 +15,8 @@ variable "cluster_name" {
   description = "EKS 클러스터 이름"
   default     = "eks-cluster-test"
 }
+
+variable "ami_ubuntu" {
+  description = "Ubuntu 20.04 LTS"
+  default     = "ami-0d5bb3742db8fc264"
+}
