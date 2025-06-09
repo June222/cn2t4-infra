@@ -20,3 +20,9 @@ variable "ami_ubuntu" {
   description = "Ubuntu 20.04 LTS"
   default     = "ami-0d5bb3742db8fc264"
 }
+
+# root 계졍 arn
+variable "root_arn" {
+  description = "root account arn"
+  default     = "arn:aws:iam::661393609088:root"
+}

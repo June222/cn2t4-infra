@@ -44,8 +44,6 @@ module "eks" {
       min_size       = 1
       max_size       = 3
 
-      # iam_role_arn = aws_iam_role.eks_node_role.arn
-
       iam_role_additional_policies = {
         pullonly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
         readonly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
@@ -58,7 +56,25 @@ module "eks" {
       }
     }
   }
+}
 
+# 루트 계정 액세스 엔트리 추가
+resource "aws_eks_access_entry" "eks_access_entry_root" {
+  cluster_name  = "eks-cluster-test"
+  principal_arn = "arn:aws:iam::661393609088:root"
+  type          = "STANDARD"
+}
+
+# 클러스터 액세스 정책
+resource "aws_eks_access_policy_association" "eks_access_policy_association" {
+  cluster_name  = module.eks.cluster_name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = var.root_arn
+
+  access_scope {
+    type = "cluster"
+    # namespaces = ["example-namespace"]
+  }
 }
 
 # ✅ 애드온 정의
