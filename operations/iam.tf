@@ -18,7 +18,7 @@ resource "aws_iam_user_policy_attachment" "eks_user_cli_policies" {
   policy_arn = each.value
 }
 
-resource "aws_iam_policy" "eks_addon_management" {
+resource "aws_iam_policy" "eks_addon_management_policy-v2" {
   name        = "EKSAddonManagementPolicy"
   description = "Allows managing EKS add-ons"
   policy = jsonencode({
@@ -51,14 +51,14 @@ resource "aws_iam_policy" "eks_addon_management" {
   })
 }
 
-# 사용자에 attach (예: user-cli)
-resource "aws_iam_user_policy_attachment" "attach_eks_addon" {
-  user       = data.aws_iam_user.user_cli.user_name
-  policy_arn = aws_iam_policy.eks_addon_management.arn
+# cluster 사용자에 attach 
+resource "aws_iam_user_policy_attachment" "attach_eks_addon_policy_to_user" {
+  user       = aws_iam_user.user_for_k8s_test.name
+  policy_arn = aws_iam_policy.eks_addon_management_policy-v2.arn
 }
 
 # 유저 생성하기
-resource "aws_iam_user" "user-for-k8s-test" {
+resource "aws_iam_user" "user_for_k8s_test" {
   name = "user-for-k8s-test"
 }
 
@@ -75,9 +75,9 @@ locals {
   ]
 }
 
-resource "aws_iam_user_policy_attachment" "eks_user_policies" {
+resource "aws_iam_user_policy_attachment" "attach_eks_policies_to_k8s_user" {
   for_each   = toset(local.eks_policies)
-  user       = aws_iam_user.user-for-k8s-test.name
+  user       = aws_iam_user.user_for_k8s_test.name
   policy_arn = each.value
 }
 
@@ -106,13 +106,14 @@ resource "aws_iam_role" "eks_node_role_test" {
 # Node Role Policy 
 locals {
   eks_node_role_policy = [
-    # "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    # "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    # "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
   ]
 }
 
-resource "aws_iam_role_policy_attachment" "eks_node_policy" {
+resource "aws_iam_role_policy_attachment" "attach_eks_policies_to_node_role" {
   for_each   = toset(local.eks_node_role_policy)
   role       = aws_iam_role.eks_node_role_test.name
   policy_arn = each.value
@@ -145,7 +146,7 @@ resource "aws_iam_role" "eks_pod_identity_vpc_cni_role" {
   }
 }
 # 위 역할에 EKS_CNI_Policy 붙이기
-resource "aws_iam_role_policy_attachment" "attach_cni_policy" {
+resource "aws_iam_role_policy_attachment" "attach_cni_policy_to_vpc_cni_role" {
   role       = aws_iam_role.eks_pod_identity_vpc_cni_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
