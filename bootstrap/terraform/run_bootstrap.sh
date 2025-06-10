@@ -10,7 +10,7 @@ terraform apply -auto-approve
 terraform output -json jenkins_ip > ./../terraform_output.json
 
 # Terraform output을 PEM 파일로 저장
-terraform output -raw private_key_pem > ./ci-ssh-key.pem
+terraform output -raw private_key_pem > ./../ci-ssh-key.pem
 chmod 400 ./../ci-ssh-key.pem
 
 
