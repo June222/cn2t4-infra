@@ -19,6 +19,3 @@ variable "ami_ubuntu" {
   default     = "ami-0d5bb3742db8fc264"
 }
 
-variable "key_name" {
-  description = "123"
-}
