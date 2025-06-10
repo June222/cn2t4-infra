@@ -1,0 +1,25 @@
+bootstrap/terraform.*
+operations/terraform.*
+*/.terraform*
+
+# Terraform state files (실제 리소스 정보 포함 → 민감)
+*/*.tfstate
+*/*.tfstate.backup
+
+# Terraform crash logs (예외 정보 → 불필요)
+*/crash.log
+
+# Terraform plan files (계획서, 바이너리일 수 있음)
+*/*.tfplan
+
+# Terraform 디렉토리 (내부 캐시 및 메타 정보)
+*/.terraform/
+*/.terraform.lock.hcl
+
+# PEM 키 등 민감 자격 증명
+*/*.pem
+*/*.key
+
+# 로컬 변수 파일 (종종 환경별 인증 정보 포함됨)
+*/*.tfvars
+*/*.tfvars.json
