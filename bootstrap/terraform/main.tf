@@ -2,96 +2,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# 1. vpc
-resource "aws_vpc" "ci_vpc" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "ci-vpc"
-  }
-}
-
-# 2. 인터넷 게이트웨이
-resource "aws_internet_gateway" "ci_igw" {
-  vpc_id = aws_vpc.ci_vpc.id
-
-  tags = {
-    Name = "ci-igw"
-  }
-}
-
-# 3. 서브넷
-resource "aws_subnet" "ci_subnet" {
-  vpc_id                  = aws_vpc.ci_vpc.id
-  cidr_block              = var.subnet_cidr
-  availability_zone       = var.availability_zone
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name = "ci-subnet"
-  }
-}
-
-# 4. 라우팅 테이블
-resource "aws_route_table" "ci_rt" {
-  vpc_id = aws_vpc.ci_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.ci_igw.id
-  }
-
-  tags = {
-    Name = "ci-rt"
-  }
-}
-
-# 5. 라우팅 테이블과 서브넷 연결
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.ci_subnet.id
-  route_table_id = aws_route_table.ci_rt.id
-}
-
-resource "aws_security_group" "ci_sg" {
-  name        = "ci-sg"
-  description = "Allow SSH and HTTP"
-  vpc_id      = aws_vpc.ci_vpc.id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Jenkins Port
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "ci-sg"
-  }
-}
-
 # Elastic IP
 resource "aws_eip" "ci_server_eip" {
   instance = aws_instance.ci_server.id
@@ -160,7 +70,7 @@ resource "aws_iam_instance_profile" "jenkins_instance_profile" {
 resource "aws_instance" "ci_server" {
   ami                         = var.ami_ubuntu
   instance_type               = "t2.small"
-  subnet_id                   = aws_subnet.ci_subnet.id
+  subnet_id                   = module.vpc.public_subnets[0]
   security_groups             = [aws_security_group.ci_sg.id]
   associate_public_ip_address = false
   # iam_instance_profile        = aws_iam_instance_profile.jenkins_instance_profile.name
