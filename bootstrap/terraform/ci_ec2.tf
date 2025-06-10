@@ -1,7 +1,6 @@
 # Elastic IP
 resource "aws_eip" "ci_server_eip" {
   instance = aws_instance.ci_server.id
-  vpc      = true
 
   tags = {
     Name = "ci-server-eip"
@@ -25,6 +24,4 @@ resource "aws_instance" "ci_server" {
   tags = {
     Name = "ci-server-ec2"
   }
-
-  depends_on = [aws_eip.ci_server_eip]
 }
