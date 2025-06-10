@@ -48,9 +48,22 @@
         aws eks update-kubeconfig
         --region {{ aws_region }}
         --name {{ cluster_name }}
-      environment:
-        AWS_ACCESS_KEY_ID: "{{ MY_AWS_ACCESS_KEY_ID }}"
-        AWS_SECRET_ACCESS_KEY: "{{ MY_AWS_SECRET_ACCESS_KEY }}"
+
+    - name: Create EKS Access Entry
+      command: >
+        aws eks create-access-entry
+        --cluster-name {{ cluster_name }}
+        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --type STANDARD
+        --username user-for-k8s
+
+    - name: Associate EKS Access Policy
+      command: >
+        aws eks associate-access-policy
+        --cluster-name {{ cluster_name }}
+        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --access-scope type=cluster
+        --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
 
     - name: Download Helm archive
       get_url:
@@ -87,9 +100,6 @@
       command: >
         helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/csi-values.yaml csi-secrets-store \
         secrets-store-csi-driver/secrets-store-csi-driver --wait
-      environment:
-        AWS_ACCESS_KEY_ID: "{{ MY_AWS_ACCESS_KEY_ID }}"
-        AWS_SECRET_ACCESS_KEY: "{{ MY_AWS_SECRET_ACCESS_KEY }}"
 
     - name: Add ASCP Helm repo
       command: helm repo add aws-secrets-manager https://aws.github.io/secrets-store-csi-driver-provider-aws
@@ -98,9 +108,6 @@
       command: >
         helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/ascp-values.yaml secrets-provider-aws \
         aws-secrets-manager/secrets-store-csi-driver-provider-aws --wait
-      environment:
-        AWS_ACCESS_KEY_ID: "{{ MY_AWS_ACCESS_KEY_ID }}"
-        AWS_SECRET_ACCESS_KEY: "{{ MY_AWS_SECRET_ACCESS_KEY }}"
 
     - name: Add ArgoCD Helm repo
       command: helm repo add argo https://argoproj.github.io/argo-helm
