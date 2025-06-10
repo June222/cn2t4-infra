@@ -20,7 +20,8 @@ module "vpc" {
   single_nat_gateway = true
 
   tags = {
-    Name = "eks-vpc"
+    Name = "eks-vpc",
+    Type = "EKS"
   }
 }
 
@@ -58,6 +59,7 @@ module "eks" {
       }
     }
   }
+  depends_on = [module.vpc]
 }
 
 # 계정들에 액세스 엔트리 추가
@@ -67,6 +69,10 @@ resource "aws_eks_access_entry" "eks_access_entries" {
   principal_arn = each.value
   type          = "STANDARD"
   depends_on    = [module.eks]
+  tags = {
+    Name = "Access Entry",
+    Type = "EKS"
+  }
 }
 
 # 클러스터 액세스 정책 
@@ -88,16 +94,31 @@ resource "aws_eks_access_policy_association" "eks_access_policy_associations" {
 resource "aws_eks_addon" "coredns" {
   cluster_name = module.eks.cluster_name
   addon_name   = "coredns"
+  depends_on   = [module.eks]
+  tags = {
+    Name = "Access Entry",
+    Type = "EKS"
+  }
 }
 
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name = module.eks.cluster_name
   addon_name   = "vpc-cni"
+  depends_on   = [module.eks]
+  tags = {
+    Name = "Access Entry",
+    Type = "EKS"
+  }
 }
 
 resource "aws_eks_addon" "kube_proxy" {
   cluster_name = module.eks.cluster_name
   addon_name   = "kube-proxy"
+  depends_on   = [module.eks]
+  tags = {
+    Name = "Access Entry",
+    Type = "EKS"
+  }
 }
 
 resource "aws_eks_addon" "pod_identity" {
@@ -105,4 +126,9 @@ resource "aws_eks_addon" "pod_identity" {
   addon_name                  = "eks-pod-identity-agent"
   service_account_role_arn    = aws_iam_role.eks_pod_identity_vpc_cni_role.arn
   resolve_conflicts_on_create = "OVERWRITE"
+  depends_on                  = [module.eks, aws_iam_role.eks_pod_identity_vpc_cni_role]
+  tags = {
+    Name = "Access Entry",
+    Type = "EKS"
+  }
 }
