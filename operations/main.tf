@@ -37,9 +37,11 @@ module "eks" {
   cluster_endpoint_public_access = true # ✅ 추가
   enable_irsa                    = true
 
+  cluster_additional_security_group_ids = [aws_security_group.istio_lb_sg.id]
+
   eks_managed_node_groups = {
     default = {
-      instance_types = ["t2.micro"]
+      instance_types = ["t3.large"]
       desired_size   = 2
       min_size       = 1
       max_size       = 3
@@ -58,23 +60,28 @@ module "eks" {
   }
 }
 
-# 루트 계정 액세스 엔트리 추가
-resource "aws_eks_access_entry" "eks_access_entry_root" {
+# 계정들에 액세스 엔트리 추가
+resource "aws_eks_access_entry" "eks_access_entries" {
+  for_each      = var.eks_access_users
   cluster_name  = "eks-cluster-test"
-  principal_arn = "arn:aws:iam::661393609088:root"
+  principal_arn = each.value
   type          = "STANDARD"
+  depends_on    = [module.eks]
 }
 
-# 클러스터 액세스 정책
-resource "aws_eks_access_policy_association" "eks_access_policy_association" {
+# 클러스터 액세스 정책 
+resource "aws_eks_access_policy_association" "eks_access_policy_associations" {
+  for_each      = var.eks_access_users
   cluster_name  = module.eks.cluster_name
+  principal_arn = each.value
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = var.root_arn
 
   access_scope {
     type = "cluster"
     # namespaces = ["example-namespace"]
   }
+
+  depends_on = [aws_eks_access_entry.eks_access_entries]
 }
 
 # ✅ 애드온 정의

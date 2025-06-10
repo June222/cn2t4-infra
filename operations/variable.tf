@@ -26,3 +26,11 @@ variable "root_arn" {
   description = "root account arn"
   default     = "arn:aws:iam::661393609088:root"
 }
+
+variable "eks_access_users" {
+  type = map(string)
+  default = {
+    root     = "arn:aws:iam::661393609088:root"
+    user_cli = "arn:aws:iam::661393609088:user/user-cli"
+  }
+}
