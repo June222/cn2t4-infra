@@ -14,7 +14,8 @@ resource "aws_instance" "ci_server" {
   subnet_id                   = module.vpc.public_subnets[0]
   security_groups             = [aws_security_group.ci_sg.id]
   associate_public_ip_address = false
-  iam_instance_profile        = aws_iam_instance_profile.jenkins_instance_profile.name
+  key_name                    = aws_key_pair.ci_ssh_key_pair.key_name
+  iam_instance_profile        = aws_iam_instance_profile.jenkins_instance_profile-v2.name
 
   root_block_device {
     volume_size = 20
