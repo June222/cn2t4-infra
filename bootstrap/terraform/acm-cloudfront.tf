@@ -4,17 +4,17 @@ provider "aws" {
 }
 
 resource "aws_acm_certificate" "cloudfront_cert" {
-  provider = aws.virginia
+  provider                  = aws.virginia
   domain_name               = "tikklemoa.com"
   validation_method         = "DNS"
   subject_alternative_names = ["www.tikklemoa.com"]
   key_algorithm             = "RSA_2048"
-    tags = {
+  tags = {
     Environment = "cloudfront"
-    }
+  }
 }
 
-resource "aws_route53_record" "cert_validation" {
+resource "aws_route53_record" "route53_record_cloudfront" {
   for_each = {
     for dvo in aws_acm_certificate.cloudfront_cert.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
@@ -30,7 +30,10 @@ resource "aws_route53_record" "cert_validation" {
   records = [each.value.record]
 }
 
-resource "aws_acm_certificate_validation" "cert_acm_validation" {
+resource "aws_acm_certificate_validation" "acm_certificate_validation_cloudfront" {
+  provider                = aws.virginia
   certificate_arn         = aws_acm_certificate.cloudfront_cert.arn
-  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+  validation_record_fqdns = [for record in aws_route53_record.route53_record_cloudfront : record.fqdn]
+
+  depends_on = [aws_acm_certificate.cloudfront_cert]
 }

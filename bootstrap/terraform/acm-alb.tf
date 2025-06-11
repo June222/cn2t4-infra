@@ -1,17 +1,13 @@
-provider "aws" {
-  region = var.aws_region
-}
-
 resource "aws_acm_certificate" "alb_cert" {
-  domain_name               = "api.tikklemoa.com"
-  validation_method         = "DNS"
-  key_algorithm             = "RSA_2048"
-    tags = {
+  domain_name       = "api.tikklemoa.com"
+  validation_method = "DNS"
+  key_algorithm     = "RSA_2048"
+  tags = {
     Environment = "alb"
-    }
+  }
 }
 
-resource "aws_route53_record" "cert_validation" {
+resource "aws_route53_record" "route53_record_alb" {
   for_each = {
     for dvo in aws_acm_certificate.alb_cert.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
@@ -27,7 +23,7 @@ resource "aws_route53_record" "cert_validation" {
   records = [each.value.record]
 }
 
-resource "aws_acm_certificate_validation" "cert_validation" {
+resource "aws_acm_certificate_validation" "acm_certificate_validation_alb" {
   certificate_arn         = aws_acm_certificate.alb_cert.arn
-  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+  validation_record_fqdns = [for record in aws_route53_record.route53_record_alb : record.fqdn]
 }
