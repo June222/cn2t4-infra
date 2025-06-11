@@ -23,3 +23,6 @@ operations/terraform.*
 # 로컬 변수 파일 (종종 환경별 인증 정보 포함됨)
 */*.tfvars
 */*.tfvars.json
+
+# .DS_Store 파일 (macOS에서 생성되는 임시 파일)
+*.DS_Store

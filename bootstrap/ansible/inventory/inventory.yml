@@ -1,0 +1,9 @@
+# inventory.yml
+all:
+  children:
+    server:
+      hosts:
+        ec2-server:
+          ansible_host: "{{ (lookup('file', '../../terraform_output.json') | from_json).jenkins_ip.value }}"
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ../ci-ssh-key.pem
