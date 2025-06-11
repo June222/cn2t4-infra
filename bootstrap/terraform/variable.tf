@@ -19,6 +19,7 @@ variable "ami_ubuntu" {
   default     = "ami-0d5bb3742db8fc264"
 }
 
+<<<<<<< HEAD:bootstrap/variable.tf
 variable "key_name" {
   description = "123"
 }
@@ -27,3 +28,5 @@ variable "acm_certificate_arn" {
   description = "ACM 인증서 ARN (us-east-1 리전에 생성된 것)"
   type        = string
 }
+=======
+>>>>>>> 3a62ae0d9eb286ce3a2755ccdb23663871ad61fe:bootstrap/terraform/variable.tf
