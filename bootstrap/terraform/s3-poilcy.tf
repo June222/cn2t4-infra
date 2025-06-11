@@ -6,13 +6,13 @@ resource "aws_s3_bucket_policy" "allow_cloudfront_oac" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid       = "AllowCloudFrontOACRead",
-        Effect    = "Allow",
+        Sid    = "AllowCloudFrontOACRead",
+        Effect = "Allow",
         Principal = {
           Service = "cloudfront.amazonaws.com"
         },
-        Action    = "s3:GetObject",
-        Resource  = "${aws_s3_bucket.tikklemoa_bucket.arn}/*",
+        Action   = "s3:GetObject",
+        Resource = "${aws_s3_bucket.tikklemoa_bucket.arn}/*",
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${aws_cloudfront_distribution.cdn.id}"
