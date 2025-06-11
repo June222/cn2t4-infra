@@ -1,0 +1,11 @@
+linux:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+syncSecret:
+  enabled: false  # Kubernetes Secret으로 복사하지 않을 경우 꺼도 됨

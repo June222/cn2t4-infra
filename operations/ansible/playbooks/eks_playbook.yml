@@ -1,0 +1,138 @@
+- name: Setup kubectl, Helm and install ArgoCD & Prometheus with user credentials
+  hosts: server
+  become: true
+  become_user: ubuntu
+
+  vars_files:
+    - ../inventory/group_vars/server.yml
+    
+  vars:
+    aws_region: ap-northeast-2
+    cluster_name: cn2t4-cluster
+    argocd_namespace: argocd
+    prometheus_namespace: monitoring
+    helm_version: v3.14.2
+
+  tasks:
+    - name: Install dependencies
+      become_user: root
+      apt:
+        name:
+          - curl
+          - unzip
+          - gnupg
+          - software-properties-common
+          - ca-certificates
+        update_cache: yes
+
+    - name: Download kubectl
+      become_user: root
+      shell: |
+        curl -LO https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl
+        chmod +x kubectl
+        mv kubectl /usr/local/bin/kubectl
+      args:
+        chdir: /tmp
+        creates: /usr/local/bin/kubectl
+
+    - name: Create .kube directory
+      file:
+        path: /home/ubuntu/.kube
+        state: directory
+        mode: '0755'
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Set kubeconfig using AWS CLI with explicit credentials
+      command: >
+        aws eks update-kubeconfig
+        --region {{ aws_region }}
+        --name {{ cluster_name }}
+
+    - name: Create EKS Access Entry
+      command: >
+        aws eks create-access-entry
+        --cluster-name {{ cluster_name }}
+        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --type STANDARD
+        --username user-for-k8s
+
+    - name: Associate EKS Access Policy
+      command: >
+        aws eks associate-access-policy
+        --cluster-name {{ cluster_name }}
+        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --access-scope type=cluster
+        --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
+
+    - name: Download Helm archive
+      get_url:
+        url: "https://get.helm.sh/helm-{{ helm_version }}-linux-amd64.tar.gz"
+        dest: "/tmp/helm.tar.gz"
+
+    - name: Extract and install Helm
+      unarchive:
+        src: "/tmp/helm.tar.gz"
+        dest: "/tmp"
+        remote_src: yes
+
+    - name: Move Helm binary
+      become_user: root
+      copy:
+        remote_src: yes
+        src: "/tmp/linux-amd64/helm"
+        dest: "/usr/local/bin/helm"
+        mode: '0755'
+    
+    - name: Copy all Helm values files to remote server
+      copy:
+        src: ../resource/
+        dest: /home/ubuntu/helm-values/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        directory_mode: '0755'
+
+    - name: Add Secrets Store CSI Driver Helm repo
+      command: helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+
+    - name: Install Secrets Store CSI Driver
+      command: >
+        helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/csi-values.yaml csi-secrets-store \
+        secrets-store-csi-driver/secrets-store-csi-driver --wait
+
+    - name: Add ASCP Helm repo
+      command: helm repo add aws-secrets-manager https://aws.github.io/secrets-store-csi-driver-provider-aws
+
+    - name: Install ASCP (AWS Secrets Manager Provider)
+      command: >
+        helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/ascp-values.yaml secrets-provider-aws \
+        aws-secrets-manager/secrets-store-csi-driver-provider-aws --wait
+
+    - name: Add ArgoCD Helm repo
+      command: helm repo add argo https://argoproj.github.io/argo-helm
+
+    - name: Create ArgoCD namespace
+      command: kubectl create ns {{ argocd_namespace }}
+      register: argocd_ns
+      failed_when: false
+      changed_when: "'created' in argocd_ns.stdout"
+
+    - name: Install ArgoCD
+      command: helm upgrade --install argocd argo/argo-cd -n {{ argocd_namespace }} -f /home/ubuntu/helm-values/argocd-values.yaml --wait
+
+    - name: Add Prometheus Helm repo
+      command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+    - name: Create Prometheus namespace
+      command: kubectl create ns {{ prometheus_namespace }}
+      register: prom_ns
+      failed_when: false
+      changed_when: "'created' in prom_ns.stdout"
+
+    - name: Pause before next Helm install
+      pause:
+        seconds: 5
+
+    - name: Install Prometheus
+      command: helm upgrade --install prometheus prometheus-community/prometheus -n {{ prometheus_namespace }} -f /home/ubuntu/helm-values/prometheus-values.yaml --wait
