@@ -150,3 +150,27 @@ resource "aws_iam_role_policy_attachment" "attach_cni_policy_to_vpc_cni_role" {
   role       = aws_iam_role.eks_pod_identity_vpc_cni_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
+
+
+# AmazonEKSPodIdentityAmazonEBSCSIRole
+
+resource "aws_iam_role" "eks_pod_identity_ebs_csi_role" {
+  name = "AmazonEKSPodIdentityAmazonEBSCSIRole"
+
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "AllowEksAuthToAssumeRoleForPodIdentity",
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "pods.eks.amazonaws.com"
+        },
+        "Action" : [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}

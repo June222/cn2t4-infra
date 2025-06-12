@@ -132,3 +132,9 @@ resource "aws_eks_addon" "pod_identity" {
     Type = "EKS"
   }
 }
+
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name             = module.eks.cluster_name
+  addon_name               = "aws-ebs-csi-driver"
+  service_account_role_arn = aws_iam_role.eks_pod_identity_ebs_csi_role.arn
+}
