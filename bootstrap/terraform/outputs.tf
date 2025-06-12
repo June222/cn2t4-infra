@@ -11,6 +11,11 @@ output "jenkins_ip" {
   value       = aws_eip.ci_server_eip.public_ip
 }
 
+output "ec2_sg_id" {
+  description = "Security Group id of EC2 Instance"
+  value       = aws_security_group.ci_sg.id
+}
+
 output "private_key_pem" {
   value     = tls_private_key.ssh_key.private_key_pem
   sensitive = true
