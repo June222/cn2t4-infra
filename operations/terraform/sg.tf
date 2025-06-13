@@ -1,28 +1,17 @@
 resource "aws_security_group" "istio_lb_sg" {
   name   = "istio-lb-sg"
-  vpc_id = module.vpc.vpc_id
+  vpc_id = local.bootstrap_config.vpc_id
 }
 
-# LoadBalancer에 적용될 보안 그룹 규칙 추가 (포트 80)
-resource "aws_security_group_rule" "sg_allow_http_from_anywhere" {
-  type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.istio_lb_sg.id
-  description       = "sg for EKS Cluster Allowing HTTP from anywhere"
-  depends_on        = [module.eks]
-}
 
-# LoadBalancer에 적용될 보안 그룹 규칙 추가 (포트 443)
-resource "aws_security_group_rule" "sg_allow_https_from_anywhere" {
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.istio_lb_sg.id
-  description       = "sg for EKS Cluster Allowing HTTPS from anywhere"
-  depends_on        = [module.eks]
+
+resource "aws_security_group_rule" "allow_ec2_to_eks" {
+  type                     = "ingress"
+  from_port                = 443 # 접근 방식은 kubectl CLI를 통한 API 호출 (443 포트)
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = module.eks.cluster_security_group_id # EKS 쪽 보안그룹
+  source_security_group_id = local.bootstrap_config.ec2_sg_id     # EC2 보안그룹
+  description              = "Allow EC2 to connect to EKS nodes"
+  depends_on               = [module.eks]
 }
