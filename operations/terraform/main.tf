@@ -4,25 +4,8 @@ provider "aws" {
 
 data "aws_availability_zones" "available" {}
 
-# VPC 생성
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "5.1.2"
-
-  name = "eks-vpc"
-  cidr = "10.0.0.0/16"
-
-  azs             = slice(data.aws_availability_zones.available.names, 0, 2)
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.3.0/24", "10.0.4.0/24"]
-
-  enable_nat_gateway = true
-  single_nat_gateway = true
-
-  tags = {
-    Name = "eks-vpc",
-    Type = "EKS"
-  }
+locals {
+  bootstrap_config = jsondecode(file("../bootstrap_config.json"))
 }
 
 # EKS 생성
@@ -32,13 +15,10 @@ module "eks" {
 
   cluster_name    = var.cluster_name
   cluster_version = "1.32"
-  vpc_id          = module.vpc.vpc_id
-  subnet_ids      = module.vpc.private_subnets
+  vpc_id          = local.bootstrap_config.vpc_id
+  subnet_ids      = local.bootstrap_config.private_subnet_ids
 
   cluster_endpoint_public_access = true # ✅ 추가
-  enable_irsa                    = true
-
-  cluster_additional_security_group_ids = [aws_security_group.istio_lb_sg.id]
 
   eks_managed_node_groups = {
     default = {
@@ -59,7 +39,6 @@ module "eks" {
       }
     }
   }
-  depends_on = [module.vpc]
 }
 
 # 계정들에 액세스 엔트리 추가
@@ -68,11 +47,11 @@ resource "aws_eks_access_entry" "eks_access_entries" {
   cluster_name  = "eks-cluster-test"
   principal_arn = each.value
   type          = "STANDARD"
-  depends_on    = [module.eks]
   tags = {
     Name = "Access Entry",
     Type = "EKS"
   }
+  depends_on = [module.eks]
 }
 
 # 클러스터 액세스 정책 
@@ -92,43 +71,57 @@ resource "aws_eks_access_policy_association" "eks_access_policy_associations" {
 
 # ✅ 애드온 정의
 resource "aws_eks_addon" "coredns" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "coredns"
-  depends_on   = [module.eks]
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "coredns"
+  resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
+  resolve_conflicts_on_update = "OVERWRITE"
   tags = {
     Name = "Access Entry",
     Type = "EKS"
   }
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "vpc_cni" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "vpc-cni"
-  depends_on   = [module.eks]
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "vpc-cni"
+  resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
+  resolve_conflicts_on_update = "OVERWRITE"
   tags = {
     Name = "Access Entry",
     Type = "EKS"
   }
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "kube_proxy" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "kube-proxy"
-  depends_on   = [module.eks]
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "kube-proxy"
+  resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
+  resolve_conflicts_on_update = "OVERWRITE"
   tags = {
     Name = "Access Entry",
     Type = "EKS"
   }
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "pod_identity" {
   cluster_name                = module.eks.cluster_name
   addon_name                  = "eks-pod-identity-agent"
-  service_account_role_arn    = aws_iam_role.eks_pod_identity_vpc_cni_role.arn
-  resolve_conflicts_on_create = "OVERWRITE"
-  depends_on                  = [module.eks, aws_iam_role.eks_pod_identity_vpc_cni_role]
+  resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
   tags = {
     Name = "Access Entry",
     Type = "EKS"
   }
+  depends_on = [module.eks, aws_iam_role.eks_pod_identity_vpc_cni_role]
 }
+
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "aws-ebs-csi-driver"
+  resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
+  resolve_conflicts_on_update = "OVERWRITE"
+  depends_on                  = [module.eks]
+}
+

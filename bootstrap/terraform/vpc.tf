@@ -3,7 +3,6 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.1.2"
 
-  name = "eks-vpc"
   cidr = "10.0.0.0/16"
 
   azs             = slice(data.aws_availability_zones.available.names, 0, 2)
@@ -14,7 +13,7 @@ module "vpc" {
   single_nat_gateway = true
 
   tags = {
-    Name = "eks-vpc",
+    Name = "backend-vpc",
     Type = "EKS"
   }
 }
