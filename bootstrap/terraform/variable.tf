@@ -18,4 +18,3 @@ variable "ami_ubuntu" {
   description = "Ubuntu 20.04 LTS"
   default     = "ami-0d5bb3742db8fc264"
 }
-
