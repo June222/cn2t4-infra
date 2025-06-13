@@ -83,8 +83,8 @@ resource "aws_eks_addon" "coredns" {
 }
 
 resource "aws_eks_addon" "vpc_cni" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "vpc-cni"
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "vpc-cni"
   resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
   resolve_conflicts_on_update = "OVERWRITE"
   tags = {
@@ -107,8 +107,8 @@ resource "aws_eks_addon" "kube_proxy" {
 }
 
 resource "aws_eks_addon" "pod_identity" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "eks-pod-identity-agent"
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "eks-pod-identity-agent"
   resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
   tags = {
     Name = "Access Entry",
@@ -118,8 +118,8 @@ resource "aws_eks_addon" "pod_identity" {
 }
 
 resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = module.eks.cluster_name
-  addon_name   = "aws-ebs-csi-driver"
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "aws-ebs-csi-driver"
   resolve_conflicts_on_create = "OVERWRITE" # 기존 IRSA 방식 설정을 덮을 수 있음.
   resolve_conflicts_on_update = "OVERWRITE"
   depends_on                  = [module.eks]
