@@ -8,7 +8,7 @@
     
   vars:
     aws_region: ap-northeast-2
-    cluster_name: cn2t4-cluster
+    cluster_name: "{{ (lookup('file', '../output.json') | from_json).eks_cluster_name.value }}"
     argocd_namespace: argocd
     prometheus_namespace: monitoring
     helm_version: v3.14.2
