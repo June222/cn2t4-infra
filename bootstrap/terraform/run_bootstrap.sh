@@ -9,6 +9,13 @@ terraform apply -auto-approve
 # eip 출력
 terraform output -json > ./../bootstrap_terraform_output.json
 
+jq '{
+  vpc_id: .vpc_id.value,
+  private_subnet_ids: .private_subnets.value,
+  ec2_sg_id: .ec2_sg_id.value
+}' ./../bootstrap_terraform_output.json > ./../../operations/bootstrap_config.json
+
+
 # pem key 위치
 KEY_PATH="../ci-ssh-key.pem"
 
