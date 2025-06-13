@@ -120,7 +120,7 @@ resource "aws_iam_role_policy_attachment" "attach_eks_policies_to_node_role" {
 }
 
 
-# EKS Pod Identity 역할
+# EKS Pod Identity VPC CNI 역할
 resource "aws_iam_role" "eks_pod_identity_vpc_cni_role" {
   name = "AmazonEKSPodIdentityAmazonVPCCNIRole-v2"
 
@@ -173,4 +173,26 @@ resource "aws_iam_role" "eks_pod_identity_ebs_csi_role" {
       }
     ]
   })
+
+}
+
+resource "aws_eks_pod_identity_association" "eks_pod_identity_ebs_csi_association" {
+  cluster_name    = var.cluster_name
+  namespace       = "kube-system"
+  service_account = "ebs-csi-controller-sa"
+  role_arn        = aws_iam_role.eks_pod_identity_ebs_csi_role.arn
+  depends_on      = [module.eks]
+}
+
+resource "aws_eks_pod_identity_association" "eks_pod_identity_vpc_cni_association" {
+  cluster_name    = var.cluster_name
+  namespace       = "kube-system"
+  service_account = "aws-node"
+  role_arn        = aws_iam_role.eks_pod_identity_vpc_cni_role.arn
+  depends_on      = [module.eks]
+}
+
+resource "aws_iam_role_policy_attachment" "attach_ebs_policy" {
+  role       = aws_iam_role.eks_pod_identity_ebs_csi_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
