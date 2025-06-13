@@ -93,21 +93,17 @@
         mode: '0644'
         directory_mode: '0755'
 
-    - name: Add Secrets Store CSI Driver Helm repo
-      command: helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+    - name: Add Sealed Secrets Helm repo
+      command: helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+    
+    - name: Update all Helm repos
+      command: helm repo update
 
-    - name: Install Secrets Store CSI Driver
+    - name: Install Sealed Secrets Controller
       command: >
-        helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/csi-values.yaml csi-secrets-store \
-        secrets-store-csi-driver/secrets-store-csi-driver --wait
-
-    - name: Add ASCP Helm repo
-      command: helm repo add aws-secrets-manager https://aws.github.io/secrets-store-csi-driver-provider-aws
-
-    - name: Install ASCP (AWS Secrets Manager Provider)
-      command: >
-        helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/ascp-values.yaml secrets-provider-aws \
-        aws-secrets-manager/secrets-store-csi-driver-provider-aws --wait
+        helm upgrade --install sealed-secrets-controller sealed-secrets/sealed-secrets
+        --namespace kube-system
+        --wait
 
     - name: Add ArgoCD Helm repo
       command: helm repo add argo https://argoproj.github.io/argo-helm
