@@ -8,7 +8,7 @@
     
   vars:
     aws_region: ap-northeast-2
-    cluster_name: cn2t4-cluster
+    cluster_name: "{{ (lookup('file', '../output.json') | from_json).eks_cluster_name.value }}"
     argocd_namespace: argocd
     prometheus_namespace: monitoring
     helm_version: v3.14.2
@@ -49,19 +49,38 @@
         --region {{ aws_region }}
         --name {{ cluster_name }}
 
+    - name: Download kubeseal binary
+      get_url:
+        url: https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.25.0/kubeseal-0.25.0-linux-amd64.tar.gz
+        dest: /tmp/kubeseal.tar.gz
+
+    - name: Extract kubeseal binary
+      unarchive:
+        src: /tmp/kubeseal.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move kubeseal binary to /usr/local/bin
+      become: true
+      copy:
+        remote_src: yes
+        src: /tmp/kubeseal
+        dest: /usr/local/bin/kubeseal
+        mode: '0755'
+
     - name: Create EKS Access Entry
       command: >
         aws eks create-access-entry
         --cluster-name {{ cluster_name }}
-        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --principal-arn arn:aws:iam::661393609088:role/ec2-jenkins-server-role
         --type STANDARD
-        --username user-for-k8s
+        --username arn:aws:iam::661393609088:role/ec2-jenkins-server-role
 
     - name: Associate EKS Access Policy
       command: >
         aws eks associate-access-policy
         --cluster-name {{ cluster_name }}
-        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --principal-arn arn:aws:iam::661393609088:role/ec2-jenkins-server-role
         --access-scope type=cluster
         --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
 
@@ -93,21 +112,17 @@
         mode: '0644'
         directory_mode: '0755'
 
-    - name: Add Secrets Store CSI Driver Helm repo
-      command: helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+    - name: Add Sealed Secrets Helm repo
+      command: helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+    
+    - name: Update all Helm repos
+      command: helm repo update
 
-    - name: Install Secrets Store CSI Driver
+    - name: Install Sealed Secrets Controller
       command: >
-        helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/csi-values.yaml csi-secrets-store \
-        secrets-store-csi-driver/secrets-store-csi-driver --wait
-
-    - name: Add ASCP Helm repo
-      command: helm repo add aws-secrets-manager https://aws.github.io/secrets-store-csi-driver-provider-aws
-
-    - name: Install ASCP (AWS Secrets Manager Provider)
-      command: >
-        helm upgrade --install -n kube-system -f /home/ubuntu/helm-values/ascp-values.yaml secrets-provider-aws \
-        aws-secrets-manager/secrets-store-csi-driver-provider-aws --wait
+        helm upgrade --install sealed-secrets-controller sealed-secrets/sealed-secrets
+        --namespace kube-system
+        --wait
 
     - name: Add ArgoCD Helm repo
       command: helm repo add argo https://argoproj.github.io/argo-helm
