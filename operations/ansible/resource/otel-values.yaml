@@ -1,0 +1,38 @@
+image:
+  repository: otel/opentelemetry-collector
+  tag: 0.99.0
+
+serviceAccount:
+  create: true
+  name: otel-sa
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::661393609088:role/OpenTelemetryIRSA
+
+mode: deployment
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+  exporters:
+    prometheus:
+      endpoint: "0.0.0.0:8889"
+
+    awscloudwatch:
+      namespace: cn2t4-monitoring
+      region: ap-northeast-2
+      log_group_name: /eks/otel-collector
+      force_flush_interval: 5s
+
+  processors:
+    batch:
+
+  service:
+    pipelines:
+      metrics:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [prometheus, awscloudwatch]

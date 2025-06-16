@@ -47,7 +47,7 @@ module "eks_auth" {
 
   depends_on = [module.eks]
 
-  manage_aws_auth_configmap = false
+  manage_aws_auth_configmap = true
 
   aws_auth_users = [
     {
