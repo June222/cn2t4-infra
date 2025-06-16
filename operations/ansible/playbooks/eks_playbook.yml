@@ -49,6 +49,25 @@
         --region {{ aws_region }}
         --name {{ cluster_name }}
 
+    - name: Download kubeseal binary
+      get_url:
+        url: https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.25.0/kubeseal-0.25.0-linux-amd64.tar.gz
+        dest: /tmp/kubeseal.tar.gz
+
+    - name: Extract kubeseal binary
+      unarchive:
+        src: /tmp/kubeseal.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move kubeseal binary to /usr/local/bin
+      become: true
+      copy:
+        remote_src: yes
+        src: /tmp/kubeseal
+        dest: /usr/local/bin/kubeseal
+        mode: '0755'
+
     - name: Create EKS Access Entry
       command: >
         aws eks create-access-entry
