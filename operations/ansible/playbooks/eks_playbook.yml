@@ -72,15 +72,15 @@
       command: >
         aws eks create-access-entry
         --cluster-name {{ cluster_name }}
-        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --principal-arn arn:aws:iam::661393609088:role/ec2-jenkins-server-role
         --type STANDARD
-        --username user-for-k8s
+        --username arn:aws:iam::661393609088:role/ec2-jenkins-server-role
 
     - name: Associate EKS Access Policy
       command: >
         aws eks associate-access-policy
         --cluster-name {{ cluster_name }}
-        --principal-arn arn:aws:iam::661393609088:role/EC2_Jenkins_Role
+        --principal-arn arn:aws:iam::661393609088:role/ec2-jenkins-server-role
         --access-scope type=cluster
         --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
 
