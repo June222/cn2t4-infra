@@ -13,11 +13,10 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.5"
 
-  cluster_name    = var.cluster_name
-  cluster_version = "1.32"
-  vpc_id          = local.bootstrap_config.vpc_id
-  subnet_ids      = local.bootstrap_config.private_subnet_ids
-
+  cluster_name                   = var.cluster_name
+  cluster_version                = "1.32"
+  vpc_id                         = local.bootstrap_config.vpc_id
+  subnet_ids                     = local.bootstrap_config.private_subnet_ids
   cluster_endpoint_public_access = true # ✅ 추가
 
   eks_managed_node_groups = {
@@ -41,12 +40,36 @@ module "eks" {
   }
 }
 
+# 20.x 버전부터 module eks에서 따로 분리하여 설정
+module "eks_auth" {
+  source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
+  version = "20.8.5"
+
+  depends_on = [module.eks]
+
+  manage_aws_auth_configmap = false
+
+  aws_auth_users = [
+    {
+      userarn  = "arn:aws:iam::661393609088:user/user-cli"
+      username = "user-cli"
+      groups   = ["system:masters"]
+    },
+    {
+      userarn  = "arn:aws:iam::661393609088:root"
+      username = "root"
+      groups   = ["system:masters"]
+    }
+  ]
+}
+
 # 계정들에 액세스 엔트리 추가
 resource "aws_eks_access_entry" "eks_access_entries" {
-  for_each      = var.eks_access_users
-  cluster_name  = "eks-cluster-test"
-  principal_arn = each.value
-  type          = "STANDARD"
+  for_each          = var.eks_access_users
+  cluster_name      = var.cluster_name
+  kubernetes_groups = ["eks-admins"] # 이 라인과 kubernetes_rbac.tf line 27, 28이 같아야함.
+  principal_arn     = each.value
+  type              = "STANDARD"
   tags = {
     Name = "Access Entry",
     Type = "EKS"
@@ -114,7 +137,7 @@ resource "aws_eks_addon" "pod_identity" {
     Name = "Access Entry",
     Type = "EKS"
   }
-  depends_on = [module.eks, aws_iam_role.eks_pod_identity_vpc_cni_role]
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "ebs_csi_driver" {

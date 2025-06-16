@@ -7,15 +7,33 @@ data "aws_iam_user" "user_cli" {
 locals {
   eks_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
-    "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+    "arn:aws:iam::aws:policy/AmazonEKSServicePolicy",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
   ]
 }
 
-# for_each로 여러 정책을 한 번에 attach
-resource "aws_iam_user_policy_attachment" "eks_user_cli_policies" {
+# IAM 그룹 생성
+resource "aws_iam_group" "eks_admin_group" {
+  name = "eks-admin-group"
+}
+
+
+# 그룹에 정책 attach
+resource "aws_iam_group_policy_attachment" "eks_group_policies" {
   for_each   = toset(local.eks_policy_arns)
-  user       = data.aws_iam_user.user_cli.user_name
+  group      = aws_iam_group.eks_admin_group.name
   policy_arn = each.value
+}
+
+# 사용자 그룹에 추가
+resource "aws_iam_user_group_membership" "add_user_to_group" {
+  user = data.aws_iam_user.user_cli.user_name
+  groups = [
+    aws_iam_group.eks_admin_group.name
+  ]
 }
 
 resource "aws_iam_policy" "eks_addon_management_policy-v2" {
@@ -53,32 +71,8 @@ resource "aws_iam_policy" "eks_addon_management_policy-v2" {
 
 # cluster 사용자에 attach 
 resource "aws_iam_user_policy_attachment" "attach_eks_addon_policy_to_user" {
-  user       = aws_iam_user.user_for_k8s_test.name
+  user       = data.aws_iam_user.user_cli.user_name
   policy_arn = aws_iam_policy.eks_addon_management_policy-v2.arn
-}
-
-# 유저 생성하기
-resource "aws_iam_user" "user_for_k8s_test" {
-  name = "user-for-k8s-test"
-}
-
-# EKS 정책 List
-locals {
-  eks_policies = [
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonEKSServicePolicy",
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController",
-    # "arn:aws:iam::aws:policy/AWSElasticLoadBalancingFullAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
-    "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  ]
-}
-
-resource "aws_iam_user_policy_attachment" "attach_eks_policies_to_k8s_user" {
-  for_each   = toset(local.eks_policies)
-  user       = aws_iam_user.user_for_k8s_test.name
-  policy_arn = each.value
 }
 
 # node IAM Role
