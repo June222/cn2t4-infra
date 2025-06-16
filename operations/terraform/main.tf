@@ -152,7 +152,6 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 resource "aws_eks_addon" "adot_collector" {
   cluster_name                = module.eks.cluster_name
   addon_name                  = "adot"
-  addon_version               = "v0.117.0-eksbuild.1"
   service_account_role_arn    = "arn:aws:iam::661393609088:role/adot-col-otlp-ingest" # 변경 필요 시 변수화 가능
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
