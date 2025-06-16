@@ -40,6 +40,7 @@ module "eks" {
   }
 }
 
+# 20.x 버전부터 module eks에서 따로 분리하여 설정
 module "eks_auth" {
   source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
   version = "20.8.5"
@@ -66,7 +67,7 @@ module "eks_auth" {
 resource "aws_eks_access_entry" "eks_access_entries" {
   for_each          = var.eks_access_users
   cluster_name      = var.cluster_name
-  kubernetes_groups = ["eks-admins"]
+  kubernetes_groups = ["eks-admins"] # 이 라인과 kubernetes_rbac.tf line 27, 28이 같아야함.
   principal_arn     = each.value
   type              = "STANDARD"
   tags = {

@@ -25,6 +25,7 @@ resource "kubernetes_namespace" "cert_manager" {
     name = "cert-manager"
   }
 
+  # depends_on 추가
   depends_on = [module.eks_auth, aws_eks_access_policy_association.eks_access_policy_associations]
 }
 
@@ -35,12 +36,13 @@ resource "helm_release" "cert_manager" {
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"
   # version    = "v1.14.4" # 최신 버전은 [https://artifacthub.io/packages/helm/cert-manager/cert-manager](https://artifacthub.io/packages/helm/cert-manager/cert-manager) 참조
-  # create_namespace = false
+  # create_namespace = false # 여기 주석처리하고 돌아감.
 
   set {
     name  = "installCRDs"
     value = "true"
   }
+  # depends_on 추가
   depends_on = [kubernetes_namespace.cert_manager]
 }
 
@@ -48,6 +50,7 @@ resource "kubernetes_namespace" "ingress_nginx" {
   metadata {
     name = "ingress-nginx"
   }
+  # depends_on 추가
   depends_on = [module.eks_auth, aws_eks_access_policy_association.eks_access_policy_associations]
 }
 
@@ -57,7 +60,7 @@ resource "helm_release" "nginx_ingress" {
   repository = "https://kubernetes.github.io/ingress-nginx"
   chart      = "ingress-nginx"
   # version    = "4.10.1" # 버전은 필요에 따라 변경 가능
-  # create_namespace = false
+  # create_namespace = false # 여기 주석처리하고 돌아감.
 
   set {
     name  = "controller.publishService.enabled"
@@ -73,5 +76,6 @@ resource "helm_release" "nginx_ingress" {
     name  = "controller.ingressClassResource.default"
     value = "true"
   }
+  # depends_on 추가
   depends_on = [kubernetes_namespace.ingress_nginx]
 }
