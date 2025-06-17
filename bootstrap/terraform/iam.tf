@@ -41,3 +41,9 @@ resource "aws_iam_instance_profile" "jenkins_instance_profile" {
   name = "ec2-instance-profile"
   role = aws_iam_role.ec2_jenkins_server_role.name
 }
+
+
+resource "aws_iam_user_policy_attachment" "attach_route53_permissions" {
+  user       = "user-cli"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonRoute53FullAccess"
+}
