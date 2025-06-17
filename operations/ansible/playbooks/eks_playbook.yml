@@ -96,9 +96,11 @@
 
     - name: Add Sealed Secrets Helm repo
       command: helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+      
     
     - name: Update all Helm repos
       command: helm repo update
+
 
     - name: Install Sealed Secrets Controller
       command: >
@@ -134,6 +136,32 @@
     - name: Install Prometheus
       command: helm upgrade --install prometheus prometheus-community/prometheus -n {{ prometheus_namespace }} -f /home/ubuntu/helm-values/prometheus-values.yaml --wait
 
+    - name: Add OpenTelemetry Helm repository
+      command: helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+      args:
+        creates: /home/ubuntu/.helm-repo-open-telemetry-added
+
+    - name: Update Helm repositories
+      command: helm repo update
+
+    - name: Create OpenTelemetry namespace
+      command: kubectl create namespace opentelemetry-operator-system
+      register: otel_ns
+      failed_when: false
+      changed_when: "'created' in otel_ns.stdout"
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Install OpenTelemetry Collector
+      command: >
+        helm upgrade --install otel-collector open-telemetry/opentelemetry-collector
+        --namespace opentelemetry-operator-system
+        -f /home/ubuntu/helm-values/otel-values.yml
+        --wait
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+
     - name: Add ACK Helm repository
       command: helm repo add ack https://aws.github.io/eks-charts
 
@@ -153,5 +181,6 @@
         kubectl apply -k github.com/aws-controllers-k8s/prometheusservice-controller/config/default
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
+
 
     
