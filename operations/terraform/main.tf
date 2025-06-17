@@ -148,3 +148,16 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   depends_on                  = [module.eks]
 }
 
+# ADOT (AWS Distro for OpenTelemetry) Add-on
+resource "aws_eks_addon" "adot_collector" {
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "adot"
+  service_account_role_arn    = "arn:aws:iam::661393609088:role/adot-col-otlp-ingest" # 변경 필요 시 변수화 가능
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  tags = {
+    Name = "ADOT Collector"
+    Type = "EKS"
+  }
+  depends_on = [module.eks]
+}
