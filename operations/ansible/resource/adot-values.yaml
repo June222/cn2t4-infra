@@ -1,0 +1,36 @@
+clusterName: cn2t4-cluster
+region: ap-northeast-2
+
+serviceAccount:
+  create: false
+  name: otel-sa
+
+mode: daemonSet
+
+exporters:
+  awsemf:
+    log_group_name: "/eks/otel/adot"
+    namespace: "cn2t4-monitoring"
+    region: "ap-northeast-2"
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch: {}
+
+extensions:
+  health_check:
+  memory_ballast:
+    size_mib: 512
+
+service:
+  extensions: [health_check, memory_ballast]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [awsemf]

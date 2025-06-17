@@ -1,10 +1,3 @@
-resource "aws_security_group" "istio_lb_sg" {
-  name   = "istio-lb-sg"
-  vpc_id = local.bootstrap_config.vpc_id
-}
-
-
-
 resource "aws_security_group_rule" "allow_ec2_to_eks" {
   type                     = "ingress"
   from_port                = 443 # 접근 방식은 kubectl CLI를 통한 API 호출 (443 포트)
