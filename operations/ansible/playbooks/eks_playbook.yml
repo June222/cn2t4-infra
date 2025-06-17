@@ -192,7 +192,6 @@
         helm upgrade --install otel-collector open-telemetry/opentelemetry-collector
         --namespace opentelemetry-operator-system
         -f /home/ubuntu/helm-values/otel-values.yaml
-        --wait
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
 
