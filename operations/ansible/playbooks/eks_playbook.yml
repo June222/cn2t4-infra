@@ -1,7 +1,6 @@
 - name: Setup kubectl, Helm and install ArgoCD & Prometheus with user credentials
   hosts: server
   become: true
-  become_user: root
 
   vars_files:
     - ../inventory/group_vars/server.yml
@@ -192,7 +191,7 @@
       command: >
         helm upgrade --install otel-collector open-telemetry/opentelemetry-collector
         --namespace opentelemetry-operator-system
-        -f /home/ubuntu/helm-values/otel-values.yml
+        -f /home/ubuntu/helm-values/otel-values.yaml
         --wait
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
