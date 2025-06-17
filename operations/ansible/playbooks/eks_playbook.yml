@@ -1,7 +1,7 @@
 - name: Setup kubectl, Helm and install ArgoCD & Prometheus with user credentials
   hosts: server
   become: true
-  become_user: ubuntu
+  become_user: root
 
   vars_files:
     - ../inventory/group_vars/server.yml
@@ -136,13 +136,14 @@
       failed_when: false
       changed_when: "'created' in argocd_ns.stdout"
     
-    - name: Check if ArgoCD is already installed
-      shell: helm list -n {{ argocd_namespace }} -q | grep '^argocd$'
-      register: argocd_status
+    - name: Check if ArgoCD already exists (via ServiceAccount)
+      shell: kubectl get sa argocd-applicationset-controller -n {{ argocd_namespace }}
+      register: argocd_exists
       failed_when: false
+      changed_when: false
 
     - name: Install ArgoCD
-      when: argocd_status.rc != 0
+      when: argocd_exists.rc != 0
       command: helm upgrade --install argocd argo/argo-cd -n {{ argocd_namespace }} -f /home/ubuntu/helm-values/argocd-values.yaml
 
     - name: Add Prometheus Helm repo
@@ -154,14 +155,14 @@
       failed_when: false
       changed_when: "'created' in prom_ns.stdout"
 
-    - name: Check if Prometheus is already installed
-      shell: helm list -n {{ prometheus_namespace }} -q | grep '^prometheus$'
-      register: prometheus_status
+    - name: Check if Prometheus is already exists
+      shell: kubectl get sa prometheus-server -n {{ prometheus_namespace }}
+      register: prometheus_exists
       failed_when: false
       changed_when: false
 
     - name: Install Prometheus
-      when: prometheus_status.rc != 0
+      when: prometheus_exists.rc != 0
       command: helm upgrade --install prometheus prometheus-community/prometheus -n {{ prometheus_namespace }} -f /home/ubuntu/helm-values/prometheus-values.yaml
 
     - name: Add OpenTelemetry Helm repository
@@ -180,7 +181,14 @@
       environment:
         KUBECONFIG: /home/ubuntu/.kube/config
 
+    - name: Check if OpenTelemetry is already exists
+      shell: kubectl get sa otel-collector -n opentelemetry-operator-system
+      register: otel_exists
+      failed_when: false
+      changed_when: false
+
     - name: Install OpenTelemetry Collector
+      when: otel_exists.rc != 0
       command: >
         helm upgrade --install otel-collector open-telemetry/opentelemetry-collector
         --namespace opentelemetry-operator-system
