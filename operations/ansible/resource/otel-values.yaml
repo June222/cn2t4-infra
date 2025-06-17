@@ -1,6 +1,6 @@
 image:
-  repository: otel/opentelemetry-collector
-  tag: 0.99.0
+  repository: public.ecr.aws/aws-observability/aws-otel-collector
+  tag: v0.36.0
 
 serviceAccount:
   create: true
