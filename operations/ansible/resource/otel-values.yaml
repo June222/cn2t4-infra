@@ -21,6 +21,8 @@ config:
     prometheus:
       endpoint: "0.0.0.0:8889"
 
+
+
     awscloudwatch:
       namespace: cn2t4-monitoring
       region: ap-northeast-2
@@ -31,6 +33,13 @@ config:
     batch:
 
   service:
+    enabled: true
+    type: ClusterIP
+    ports:
+      - name: prometheus
+        port: 8889
+        targetPort: 8889
+        protocol: TCP
     pipelines:
       metrics:
         receivers: [otlp]
