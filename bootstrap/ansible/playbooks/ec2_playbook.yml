@@ -214,20 +214,32 @@
       delay: 6
       until: jenkins_cli_auth.rc == 0
     
-    - name: 필요 플러그인 설치
-      shell: |
-        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }} install-plugin {{ jenkins_plugins | join(' ') }}
-      register: plugin_install
-      retries: 3
-      delay: 15
-      until: plugin_install.rc == 0
-      tags: plugins
+    - name: Jenkins 플러그인 개별 설치 (loop)
+      shell: >
+        java -jar /tmp/jenkins-cli.jar
+        -s http://localhost:8080/
+        -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }}
+        install-plugin {{ item }}
+      loop: "{{ jenkins_plugins }}"
+      register: plugin_loop_result
+      retries: 2
+      delay: 10
+      ignore_errors: true
 
-    - name: Jenkins 리스타트
-      shell: |
-        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }} safe-restart
-      async: 0
-      poll: 0
+    - name: 실패한 플러그인 목록 추출
+      set_fact:
+        failed_plugins: "{{ plugin_loop_result.results | selectattr('rc', 'ne', 0) | map(attribute='item') | list }}"
+
+    - name: 실패한 플러그인 출력
+      debug:
+        var: failed_plugins
+
+    - name: Jenkins 재시작 (safe-restart)
+      shell: >
+        java -jar /tmp/jenkins-cli.jar
+        -s http://localhost:8080/
+        -auth {{ jenkins_admin_id }}:{{ jenkins_admin_pw }}
+        safe-restart
 
     - name: Terraform 설치
       shell: |
