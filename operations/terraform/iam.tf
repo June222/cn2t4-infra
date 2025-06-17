@@ -147,7 +147,6 @@ resource "aws_iam_role_policy_attachment" "attach_cni_policy_to_vpc_cni_role" {
 
 
 # AmazonEKSPodIdentityAmazonEBSCSIRole
-
 resource "aws_iam_role" "eks_pod_identity_ebs_csi_role" {
   name = "AmazonEKSPodIdentityAmazonEBSCSIRole"
 
@@ -167,7 +166,88 @@ resource "aws_iam_role" "eks_pod_identity_ebs_csi_role" {
       }
     ]
   })
+}
 
+resource "aws_iam_role" "eks_pod_identity_adot_prom_metrics_role" {
+  name = "AmazonEKSPodIdentityADOT-adot-col-prom-metrics-Role"
+  
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "pods.eks.amazonaws.com"
+        },
+        "Action" : [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach AmazonPrometheusRemoteWriteAccess policy
+resource "aws_iam_role_policy_attachment" "prometheus_write_access" {
+  role       = aws_iam_role.eks_pod_identity_adot_prom_metrics_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonPrometheusRemoteWriteAccess"
+}
+
+# Attach CloudWatchAgentServerPolicy
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy" {
+  role       = aws_iam_role.eks_pod_identity_adot_prom_metrics_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "aws_iam_role" "eks_pod_identity_adot_otlp_ingest_role" {
+  name = "AmazonEKSPodIdentityADOT-adot-col-otlp-ingest-Role"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "pods.eks.amazonaws.com"
+        },
+        "Action" : [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach AWSXrayWriteOnlyAccess
+resource "aws_iam_role_policy_attachment" "xray_agent_policy" {
+  role       = aws_iam_role.eks_pod_identity_adot_prom_metrics_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+}
+
+resource "aws_iam_role" "eks_pod_identity_adot_container_logs_role" {
+  name = "AmazonEKSPodIdentityADOT-adot-col-container-logs-Role"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "pods.eks.amazonaws.com"
+        },
+        "Action" : [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach CloudWatchAgentServerPolicy
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent_server_policy" {
+  role       = aws_iam_role.eks_pod_identity_adot_prom_metrics_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 resource "aws_eks_pod_identity_association" "eks_pod_identity_ebs_csi_association" {
@@ -183,6 +263,30 @@ resource "aws_eks_pod_identity_association" "eks_pod_identity_vpc_cni_associatio
   namespace       = "kube-system"
   service_account = "aws-node"
   role_arn        = aws_iam_role.eks_pod_identity_vpc_cni_role.arn
+  depends_on      = [module.eks]
+}
+
+resource "aws_eks_pod_identity_association" "eks_pod_identity_prom_metrics_association" {
+  cluster_name    = var.cluster_name
+  namespace       = "kube-system"
+  service_account = "adot-col-prom-metrics"
+  role_arn        = aws_iam_role.eks_pod_identity_adot_prom_metrics_role.arn
+  depends_on      = [module.eks]
+}
+
+resource "aws_eks_pod_identity_association" "eks_pod_identity_otlp_ingest_association" {
+  cluster_name    = var.cluster_name
+  namespace       = "kube-system"
+  service_account = "adot-col-otlp-ingest"
+  role_arn        = aws_iam_role.eks_pod_identity_adot_otlp_ingest_role.arn
+  depends_on      = [module.eks]
+}
+
+resource "aws_eks_pod_identity_association" "eks_pod_identity_container_logs_association" {
+  cluster_name    = var.cluster_name
+  namespace       = "kube-system"
+  service_account = "adot-col-container-logs"
+  role_arn        = aws_iam_role.eks_pod_identity_adot_container_logs_role.arn
   depends_on      = [module.eks]
 }
 
