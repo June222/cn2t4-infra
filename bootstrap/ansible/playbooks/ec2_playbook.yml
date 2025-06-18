@@ -23,6 +23,7 @@
       - mailer
       - dark-theme
       - aws-credentials
+      - copyartifact
   tasks:
     - name: Ping 테스트
       ping:
@@ -261,3 +262,9 @@
       apt:
         name: ansible
         state: present
+        
+    - name: yq 설치
+      get_url:
+        url: https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        dest: /usr/local/bin/yq
+        mode: '0755'
