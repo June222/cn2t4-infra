@@ -4,8 +4,19 @@ resource "aws_s3_bucket" "tikklemoa_bucket" {
   force_destroy = true
 
   tags = {
-    Environment = "Teraform"
+    Environment = "dev"
     Project     = "cn2t4-gitops"
+    Name        = "VersionedBucket"
+    Backup = "daily"
+  }
+}
+
+# S3 버킷에 대한 버전 관리 설정
+resource "aws_s3_bucket_versioning" "versioning" {
+  bucket = aws_s3_bucket.tikklemoa_bucket.id
+
+  versioning_configuration {
+    status = "Enabled" # 또는 "Suspended"
   }
 }
 
