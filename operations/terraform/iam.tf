@@ -190,3 +190,23 @@ resource "aws_iam_role_policy_attachment" "attach_ebs_policy" {
   role       = aws_iam_role.eks_pod_identity_ebs_csi_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
+
+resource "aws_iam_role" "otel_irsa" {
+  name = "OpenTelemetryIRSA"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.eks.arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "otel_irsa_cloudwatch" {
+  role       = aws_iam_role.otel_irsa.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
