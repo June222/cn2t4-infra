@@ -2,6 +2,11 @@ provider "aws" {
   region = "ap-northeast-2" # Route 53은 글로벌 리전
 }
 
+provider "aws" {
+  alias  = "virginia"
+  region = "us-east-1"
+}
+
 data "aws_availability_zones" "available" {}
 
 locals {

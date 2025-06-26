@@ -19,14 +19,15 @@ resource "aws_cloudfront_distribution" "cdn" {
   default_root_object = "index.html"
 
   default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD"]
-    cached_methods   = ["GET", "HEAD"]
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
     target_origin_id = "s3-Origin"
 
     viewer_protocol_policy = "redirect-to-https"
 
-    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
-
+    cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+    origin_request_policy_id   = "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf" # CORS-S3Origin
+    response_headers_policy_id = "5cc3b908-e619-4b99-88e5-2cf7f45965bd"
   }
 
   viewer_certificate {

@@ -16,7 +16,7 @@ resource "aws_route53_record" "route53_record_alb" {
     }
   }
 
-  zone_id = "Z077841636QBQU32SBCB3" # 실제 Route53 Hosted Zone ID로 교체
+  zone_id = data.aws_route53_zone.selected.zone_id # 실제 Route53 Hosted Zone ID로 교체
   name    = each.value.name
   type    = each.value.type
   ttl     = 300
